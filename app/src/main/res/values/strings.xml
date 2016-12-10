@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">TutoTchat</string>
+    <string name="login_title">Tuto::Tchat</string>
+    <string name="login_pseudo">Pseudo</string>
+    <string name="login_connexion">Connexion</string>
+</resources>
