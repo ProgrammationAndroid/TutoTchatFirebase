@@ -1,8 +1,11 @@
 package com.tutocode.tutotchat;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -15,8 +18,12 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import com.tutocode.tutotchat.Entities.User;
 
 public class LoginActivity extends AppCompatActivity implements View.OnClickListener{
 
@@ -27,8 +34,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     private FirebaseAuth mAuth;
     private FirebaseDatabase mDatabase;
     private DatabaseReference mRef;
-
-    private FirebaseAuth.AuthStateListener authStateListener;
+    private SharedPreferences prefs;
 
     private static final String TAG = "TCHAT";
 
@@ -48,44 +54,86 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         mDatabase = FirebaseDatabase.getInstance();
         mRef = mDatabase.getReference();
 
-        authStateListener = new FirebaseAuth.AuthStateListener() {
-            @Override
-            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                if(firebaseAuth.getCurrentUser() != null){
-                    //Rediriger vers la tchat Activity
-                    Log.w(TAG, "onAuthStateChanged: " + firebaseAuth.getCurrentUser().getUid());
-                }
-            }
-        };
+        prefs = getSharedPreferences("tchat", MODE_PRIVATE);
 
+        if(mAuth.getCurrentUser() != null && prefs.getString("PSEUDO", null) != null ){
+            startActivity(new Intent(getApplicationContext(), TchatActivity.class));
+            finish();
+        }
 
     }
 
-    @Override
-    public void onClick(View view) {
-        loader.setVisibility(View.VISIBLE);
+    private void checkUsername(final String username, final CheckUsernameCallback callback){
+        mRef.child("usernames").child(username).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if(dataSnapshot.getValue() != null){
+                    callback.isTaken();
+                }else{
+                    callback.isValid(username);
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.w(TAG, "onCancelled: " +databaseError.getMessage() );
+                loader.setVisibility(View.INVISIBLE);
+            }
+        });
+    }
+
+    private void registerUser(final String username){
         mAuth.signInAnonymously().addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
             @Override
             public void onComplete(@NonNull Task<AuthResult> task) {
                 if(!task.isSuccessful()){
                     Toast.makeText(LoginActivity.this, "Connexion impossible, Veuillez réessayer", Toast.LENGTH_SHORT).show();
                 }
-                loader.setVisibility(View.INVISIBLE);
+
+                final String userId = task.getResult().getUser().getUid();
+
+                checkUsername(username, new CheckUsernameCallback() {
+                    @Override
+                    public void isValid(final String username) {
+
+                        User newUser = new User(username, userId);
+                        mRef.child("users").child(userId).setValue(newUser).addOnCompleteListener(LoginActivity.this, new OnCompleteListener<Void>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Void> task) {
+                                if(task.isSuccessful()){
+                                    mRef.child("usernames").child(username).setValue(userId);
+                                    prefs.edit().putString("PSEUDO", username).apply();
+                                    startActivity(new Intent(getApplicationContext(), TchatActivity.class));
+                                    finish();
+                                }
+                            }
+                        });
+
+                    }
+
+                    @Override
+                    public void isTaken() {
+                        Toast.makeText(LoginActivity.this, "Veuillez choisir un autre pseudo", Toast.LENGTH_SHORT).show();
+                        loader.setVisibility(View.INVISIBLE);
+                    }
+                });
             }
         });
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-        if(authStateListener != null){
-            mAuth.removeAuthStateListener(authStateListener);
+    public void onClick(View view) {
+        loader.setVisibility(View.VISIBLE);
+        String username = etPseudo.getText().toString();
+        if(!TextUtils.isEmpty(username)){
+            registerUser(username);
         }
+
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        mAuth.addAuthStateListener(authStateListener);
+    interface CheckUsernameCallback{
+        void isValid(String username);
+        void isTaken();
     }
+
 }
