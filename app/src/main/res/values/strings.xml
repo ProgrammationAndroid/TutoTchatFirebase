@@ -3,4 +3,8 @@
     <string name="login_title">Tuto::Tchat</string>
     <string name="login_pseudo">Pseudo</string>
     <string name="login_connexion">Connexion</string>
+    <string name="tchat_hint">Message</string>
+    <string name="tchat_content_img">Envoyer une image</string>
+    <string name="tchat_content_send">Envoyer le message</string>
+    <string name="image">image</string>
 </resources>
