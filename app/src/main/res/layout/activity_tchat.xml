@@ -51,6 +51,7 @@
                 android:layout_height="wrap_content" />
 
             <EditText
+                android:id="@+id/etMessage"
                 android:layout_width="0dp"
                 android:hint="@string/tchat_hint"
                 android:imeOptions="actionDone"

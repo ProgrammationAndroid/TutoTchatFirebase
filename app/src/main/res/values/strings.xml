@@ -7,4 +7,5 @@
     <string name="tchat_content_img">Envoyer une image</string>
     <string name="tchat_content_send">Envoyer le message</string>
     <string name="image">image</string>
+    <string name="menu_deconnexion">Déconnexion</string>
 </resources>

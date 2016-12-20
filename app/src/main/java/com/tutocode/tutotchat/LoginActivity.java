@@ -64,7 +64,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     }
 
     private void checkUsername(final String username, final CheckUsernameCallback callback){
-        mRef.child("usernames").child(username).addListenerForSingleValueEvent(new ValueEventListener() {
+        mRef.child(Constants.USERNAMES_DB).child(username).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if(dataSnapshot.getValue() != null){
@@ -97,11 +97,11 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                     public void isValid(final String username) {
 
                         User newUser = new User(username, userId);
-                        mRef.child("users").child(userId).setValue(newUser).addOnCompleteListener(LoginActivity.this, new OnCompleteListener<Void>() {
+                        mRef.child(Constants.USERS_DB).child(userId).setValue(newUser).addOnCompleteListener(LoginActivity.this, new OnCompleteListener<Void>() {
                             @Override
                             public void onComplete(@NonNull Task<Void> task) {
                                 if(task.isSuccessful()){
-                                    mRef.child("usernames").child(username).setValue(userId);
+                                    mRef.child(Constants.USERNAMES_DB).child(username).setValue(userId);
                                     prefs.edit().putString("PSEUDO", username).apply();
                                     startActivity(new Intent(getApplicationContext(), TchatActivity.class));
                                     finish();
