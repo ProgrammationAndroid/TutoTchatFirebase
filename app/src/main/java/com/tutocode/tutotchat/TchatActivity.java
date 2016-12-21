@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
@@ -22,7 +23,10 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.tutocode.tutotchat.Adapters.TchatAdapter;
 import com.tutocode.tutotchat.Entities.Message;
+
+import java.util.ArrayList;
 
 public class TchatActivity extends AppCompatActivity {
 
@@ -39,6 +43,8 @@ public class TchatActivity extends AppCompatActivity {
     private SharedPreferences prefs;
     private String username;
     private String userId;
+
+    private TchatAdapter adapter;
 
     private static final String TAG = "TCHAT";
 
@@ -66,6 +72,8 @@ public class TchatActivity extends AppCompatActivity {
                     attachChildListener();
                     username = prefs.getString("PSEUDO", null);
                     userId = user.getUid();
+                    adapter.setUser(user);
+
                 }else{
                     startActivity(new Intent(getApplicationContext(), LoginActivity.class));
                     finish();
@@ -80,6 +88,10 @@ public class TchatActivity extends AppCompatActivity {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                     Log.w(TAG, "onChildAdded: ");
+                    Message message = dataSnapshot.getValue(Message.class);
+                    message.setUid(dataSnapshot.getKey());
+                    adapter.addMessage(message);
+                    recycler.scrollToPosition(adapter.getItemCount() - 1);
                 }
 
                 @Override
@@ -116,6 +128,15 @@ public class TchatActivity extends AppCompatActivity {
         etMessage = (EditText) findViewById(R.id.etMessage);
         sendButton = (ImageButton) findViewById(R.id.sendButton);
         recycler = (RecyclerView) findViewById(R.id.recycler);
+
+        LinearLayoutManager manager = new LinearLayoutManager(this);
+        manager.setStackFromEnd(true);
+        recycler.setLayoutManager(manager);
+        ArrayList<Message> messages = new ArrayList<>();
+        adapter = new TchatAdapter(messages);
+        recycler.setAdapter(adapter);
+
+
 
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
