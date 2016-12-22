@@ -38,6 +38,11 @@ public class TchatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>{
         messages.add(message);
         notifyDataSetChanged();
     }
+    public void deleteMessage(Message message){
+        int index = messages.indexOf(message);
+        messages.remove(index);
+        notifyItemRemoved(index);
+    }
 
     @Override
     public int getItemViewType(int position) {
