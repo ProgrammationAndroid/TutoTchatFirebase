@@ -4,9 +4,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -40,7 +40,7 @@ import com.google.firebase.storage.UploadTask;
 import com.tutocode.tutotchat.Adapters.TchatAdapter;
 import com.tutocode.tutotchat.Entities.Message;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class TchatActivity extends AppCompatActivity {
@@ -156,8 +156,7 @@ public class TchatActivity extends AppCompatActivity {
         LinearLayoutManager manager = new LinearLayoutManager(this);
         manager.setStackFromEnd(true);
         recycler.setLayoutManager(manager);
-        ArrayList<Message> messages = new ArrayList<>();
-        adapter = new TchatAdapter(messages);
+        adapter = new TchatAdapter();
         recycler.setAdapter(adapter);
 
         sendButton.setOnClickListener(new View.OnClickListener() {
@@ -201,7 +200,6 @@ public class TchatActivity extends AppCompatActivity {
             Uri imageUri = data.getData();
             Log.w(TAG, "onActivityResult: " + imageUri.toString());
             uploadImage(imageUri);
-            //Upload image
         }
     }
 
@@ -259,6 +257,33 @@ public class TchatActivity extends AppCompatActivity {
         mRef = mDatabase.getReference();
         mStorage = FirebaseStorage.getInstance();
         storageReference = mStorage.getReferenceFromUrl(Constants.STORAGE_PATH).child(Constants.STORAGE_REF);
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if(storageReference != null){
+            outState.putString("storageReference", storageReference.toString());
+        }
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        Log.w(TAG, "onRestoreInstanceState: CALLED" );
+        String ref = savedInstanceState.getString("storageReference");
+        if(ref == null){
+            return;
+        }
+
+        storageReference = FirebaseStorage.getInstance().getReferenceFromUrl(ref);
+        List tasks = storageReference.getActiveUploadTasks();
+        if(tasks.size() > 0){
+            imageButton.setEnabled(false);
+            imageLoader.setVisibility(View.VISIBLE);
+            uploadTask = (UploadTask) tasks.get(0);
+            addUploadListener(uploadTask);
+        }
 
     }
 
@@ -271,9 +296,26 @@ public class TchatActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if(item.getItemId() == R.id.logout){
-            //TODO
+            clearOnLogout();
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void clearOnLogout(){
+        FirebaseUser user = mAuth.getCurrentUser();
+        if(user != null){
+            mRef.child(Constants.USERS_DB).child(user.getUid()).removeValue();
+            mRef.child(Constants.USERNAMES_DB).child(username).removeValue();
+            prefs.edit().remove("PSEUDO").apply();
+            adapter.clearMessage();
+            detachChildListener();
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        imageLoader.setVisibility(View.GONE);
     }
 
     @Override
